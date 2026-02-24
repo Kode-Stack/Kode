@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="es" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Portafolio de desarrollo web fullstack y diseño UI/UX de Amaro Araneda">
+    <title>Kode </title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Librería para renderizado de contenido dinámico -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        :root {
+            /* Cambio a una paleta más corporativa/profesional (Azul Real) */
+            --accent: #2563eb; 
+            --bg-dark: #0f172a;
+            --text-primary: #f8fafc;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            /* Cursor estándar para mayor usabilidad profesional */
+            cursor: default; 
+        }
+
+        /* Sistema de Precarga */
+        #loader-overlay {
+            position: fixed;
+            inset: 0;
+            background: var(--bg-dark);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.5s ease, visibility 0.5s;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(37, 99, 235, 0.2);
+            border-radius: 50%;
+            border-top-color: var(--accent);
+            animation: spin 0.8s ease-in-out infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Indicador de Lectura */
+        #reading-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: var(--accent);
+            z-index: 100;
+            width: 0%;
+            transition: width 0.1s;
+        }
+
+        /* Fondo Interactivo */
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: -1;
+            opacity: 0.6; /* Más sutil */
+        }
+
+        /* Utilidades de Navegación */
+        .nav-item.active {
+            color: var(--accent);
+            font-weight: 600;
+        }
+        
+        .main-nav {
+            background: rgba(15, 23, 42, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            transition: padding 0.3s ease, background 0.3s ease;
+        }
+        
+        .main-nav.scrolled {
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+            background: rgba(15, 23, 42, 0.98);
+            box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Tarjetas de Proyecto */
+        .project-card {
+            background: rgba(30, 41, 59, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+
+        .project-card:hover {
+            border-color: rgba(37, 99, 235, 0.3);
+            transform: translateY(-4px);
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Animaciones de Entrada */
+        .fade-up {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .fade-up.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Botón Primario */
+        .btn-primary {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        }
+
+        /* WIDGET DE CHAT (Estilo Corporativo) */
+        #support-widget {
+            z-index: 1000;
+        }
+        
+        .chat-container {
+            opacity: 0;
+            transform: translateY(10px) scale(0.98);
+            pointer-events: none;
+            transition: all 0.25s ease-out;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+        }
+        
+        .chat-container.active {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: all;
+        }
+
+        .message-bubble {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Scrollbar personalizado sutil */
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background-color: rgba(255,255,255,0.15); border-radius: 4px; }
+
+        /* Indicador de escritura */
+        .typing-indicator span {
+            display: inline-block;
+            width: 5px;
+            height: 5px;
+            background-color: #94a3b8;
+            border-radius: 50%;
+            animation: blink 1.4s infinite ease-in-out both;
+            margin: 0 2px;
+        }
+        .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+        .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes blink { 0%, 80%, 100% { opacity: 0; } 40% { opacity: 1; } }
+
+        /* Estilos de Texto del Chat */
+        .chat-content p { margin-bottom: 0.5rem; }
+        .chat-content ul { list-style-type: disc; padding-left: 1.2rem; margin-bottom: 0.5rem; }
+        .chat-content strong { color: var(--accent); font-weight: 600; }
+    </style>
+</head>
+<body onload="initApp()">
+
+    <!-- Loader -->
+    <div id="loader-overlay">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Indicador de Lectura -->
+    <div id="reading-progress"></div>
+    
+    <!-- Fondo WebGL -->
+    <canvas id="canvas-container"></canvas>
+
+    <!-- Barra de Navegación -->
+    <nav class="fixed w-full z-40 main-nav" id="main-nav">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="#" class="text-xl font-bold tracking-tight text-white hover:text-blue-400 transition">Kode.</a>
+            
+            <!-- Menú Escritorio -->
+            <div class="hidden md:flex space-x-8 text-sm font-medium text-slate-300">
+                <a href="#inicio" class="nav-item hover:text-white transition py-2">Inicio</a>
+                <a href="#proyectos" class="nav-item hover:text-white transition py-2">Portafolio</a>
+                <a href="#expertise" class="nav-item hover:text-white transition py-2">Expertise</a>
+                <!-- Renombrado para sonar más profesional -->
+                <button onclick="toggleSupportChat()" class="nav-item hover:text-blue-400 text-blue-300 transition py-2 flex items-center gap-2">
+                    <i class="far fa-comments"></i> Consultoría
+                </button>
+                <a href="#contacto" class="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-md transition btn-primary">Contacto</a>
+            </div>
+
+            <!-- Menú Móvil Trigger -->
+            <button class="md:hidden text-xl text-slate-300 hover:text-white" onclick="toggleMobileNav()" aria-label="Menú">
+                <i class="fas fa-bars" id="menu-icon"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- Menú Móvil Overlay -->
+    <div id="mobile-nav" class="fixed inset-0 z-30 bg-slate-900/95 flex flex-col items-center justify-center space-y-8 text-xl font-medium transition-transform duration-300 translate-x-full backdrop-blur-md">
+        <a href="#inicio" onclick="toggleMobileNav()" class="hover:text-blue-400">Inicio</a>
+        <a href="#proyectos" onclick="toggleMobileNav()" class="hover:text-blue-400">Portafolio</a>
+        <a href="#expertise" onclick="toggleMobileNav()" class="hover:text-blue-400">Expertise</a>
+        <button onclick="toggleMobileNav(); toggleSupportChat()" class="text-blue-400">Consultoría</button>
+        <a href="#contacto" onclick="toggleMobileNav()" class="text-slate-400">Contacto</a>
+    </div>
+
+    <!-- Sección Hero -->
+    <section id="inicio" class="min-h-screen flex items-center justify-center px-6 pt-20 relative">
+        <div class="max-w-4xl text-center z-10">
+            <div class="inline-flex items-center gap-2 mb-6 px-3 py-1 rounded-full border border-slate-700 bg-slate-800/50 text-slate-400 text-xs font-semibold uppercase tracking-wider fade-up">
+                <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Disponible para proyectos
+            </div>
+            
+            <h1 class="text-5xl md:text-7xl font-bold mb-6 leading-tight text-white fade-up" style="transition-delay: 100ms;">
+                Desarrollo Web de <br>
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">Alto Rendimiento.</span>
+            </h1>
+            
+            <p class="text-slate-400 text-lg md:text-xl mb-10 max-w-2xl mx-auto leading-relaxed fade-up" style="transition-delay: 200ms;">
+                Hola, soy <span class="text-white font-medium">Kode</span>. Ayudo a empresas y startups a construir productos digitales escalables, seguros y centrados en el usuario.
+            </p>
+            
+            <div class="flex flex-col sm:flex-row items-center justify-center gap-4 fade-up" style="transition-delay: 300ms;">
+                <a href="#proyectos" class="w-full sm:w-auto px-8 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-500 transition btn-primary">
+                    Ver Proyectos
+                </a>
+                <a href="#contacto" class="w-full sm:w-auto px-8 py-3 border border-slate-600 text-slate-300 font-medium rounded-lg hover:bg-slate-800 hover:text-white transition">
+                    Contactar
+                </a>
+            </div>
+        </div>
+        
+        <div class="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce text-slate-600 text-sm">
+            <i class="fas fa-arrow-down"></i>
+        </div>
+    </section>
+
+    <!-- Sección de Proyectos Seleccionados -->
+    <section id="proyectos" class="py-24 px-6 bg-slate-900/50">
+        <div class="max-w-6xl mx-auto">
+            <div class="flex flex-col md:flex-row justify-between items-end mb-16 gap-4 fade-up">
+                <div>
+                    <span class="text-blue-500 font-bold text-sm uppercase tracking-wider mb-2 block">Portafolio</span>
+                    <h2 class="text-3xl md:text-4xl font-bold text-white">Casos de Estudio</h2>
+                </div>
+                <a href="https://github.com" target="_blank" class="text-slate-400 hover:text-white transition flex items-center gap-2 text-sm font-medium">
+                    Ver código en GitHub <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+
+            <div class="grid gap-20">
+                <!-- Proyecto 1 -->
+                <div class="group grid md:grid-cols-2 gap-10 items-center fade-up">
+                    <div class="relative overflow-hidden rounded-xl border border-slate-800 shadow-2xl bg-slate-800">
+                        <div class="absolute inset-0 bg-blue-900/10 group-hover:bg-transparent transition duration-500 z-10"></div>
+                        <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=800&h=500&fit=crop" 
+                             alt="Dashboard Analytics" 
+                             class="w-full h-auto transform group-hover:scale-105 transition duration-700 opacity-90 group-hover:opacity-100 grayscale group-hover:grayscale-0">
+                    </div>
+                    <div>
+                        <div class="flex flex-wrap gap-2 mb-4 text-xs font-bold text-blue-300">
+                            <span class="px-2 py-1 bg-blue-900/30 rounded">React</span>
+                            <span class="px-2 py-1 bg-blue-900/30 rounded">TypeScript</span>
+                            <span class="px-2 py-1 bg-blue-900/30 rounded">SaaS</span>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-3 text-white">Nexus Dashboard</h3>
+                        <p class="text-slate-400 mb-6 leading-relaxed">
+                            Plataforma de análisis de datos para e-commerce. Implementación de gráficos en tiempo real y optimización de carga de grandes volúmenes de datos, mejorando el rendimiento en un 40%.
+                        </p>
+                        <a href="#" class="inline-flex items-center gap-2 text-white border-b border-blue-500 pb-0.5 hover:text-blue-400 transition">
+                            Ver Demo <i class="fas fa-external-link-alt text-xs"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Proyecto 2 -->
+                <div class="group grid md:grid-cols-2 gap-10 items-center fade-up">
+                    <div class="md:order-2 relative overflow-hidden rounded-xl border border-slate-800 shadow-2xl bg-slate-800">
+                        <div class="absolute inset-0 bg-blue-900/10 group-hover:bg-transparent transition duration-500 z-10"></div>
+                        <img src="https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&h=500&fit=crop" 
+                             alt="Fintech App" 
+                             class="w-full h-auto transform group-hover:scale-105 transition duration-700 opacity-90 group-hover:opacity-100 grayscale group-hover:grayscale-0">
+                    </div>
+                    <div class="md:order-1">
+                        <div class="flex flex-wrap gap-2 mb-4 text-xs font-bold text-blue-300">
+                            <span class="px-2 py-1 bg-blue-900/30 rounded">Next.js</span>
+                            <span class="px-2 py-1 bg-blue-900/30 rounded">Tailwind</span>
+                            <span class="px-2 py-1 bg-blue-900/30 rounded">API Integrations</span>
+                        </div>
+                        <h3 class="text-2xl font-bold mb-3 text-white">Fintech Wallet</h3>
+                        <p class="text-slate-400 mb-6 leading-relaxed">
+                            Landing page de alta conversión y dashboard de usuario para una fintech. Diseño totalmente responsivo con enfoque en accesibilidad y seguridad de datos.
+                        </p>
+                        <a href="#" class="inline-flex items-center gap-2 text-white border-b border-blue-500 pb-0.5 hover:text-blue-400 transition">
+                            Ver Caso de Estudio <i class="fas fa-arrow-right text-xs"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sección de Expertise (Habilidades) -->
+    <section id="expertise" class="py-24 px-6 relative">
+        <div class="max-w-6xl mx-auto">
+            <div class="text-center mb-16 fade-up">
+                <h2 class="text-3xl md:text-4xl font-bold mb-4 text-white">Áreas de Experiencia</h2>
+                <p class="text-slate-400">Stack tecnológico enfocado en escalabilidad y mantenimiento.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Frontend -->
+                <div class="project-card p-8 rounded-xl fade-up" style="transition-delay: 0ms;">
+                    <div class="w-12 h-12 bg-blue-600/20 rounded-lg flex items-center justify-center mb-6">
+                        <i class="fab fa-react text-2xl text-blue-400"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-white">Frontend Architecture</h3>
+                    <p class="text-slate-400 text-sm mb-4">Especialización en React y Next.js. Creación de componentes reutilizables y sistemas de diseño.</p>
+                    <ul class="text-sm text-slate-500 space-y-1">
+                        <li>• React / Next.js</li>
+                        <li>• TypeScript</li>
+                        <li>• Tailwind CSS</li>
+                    </ul>
+                </div>
+
+                <!-- Backend -->
+                <div class="project-card p-8 rounded-xl fade-up" style="transition-delay: 100ms;">
+                    <div class="w-12 h-12 bg-emerald-600/20 rounded-lg flex items-center justify-center mb-6">
+                        <i class="fas fa-server text-2xl text-emerald-400"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-white">Backend Solutions</h3>
+                    <p class="text-slate-400 text-sm mb-4">Desarrollo de APIs RESTful y GraphQL seguras. Gestión de bases de datos SQL y NoSQL.</p>
+                    <ul class="text-sm text-slate-500 space-y-1">
+                        <li>• Node.js / Express</li>
+                        <li>• PostgreSQL / MongoDB</li>
+                        <li>• Docker</li>
+                    </ul>
+                </div>
+
+                <!-- UX/UI -->
+                <div class="project-card p-8 rounded-xl fade-up" style="transition-delay: 200ms;">
+                    <div class="w-12 h-12 bg-purple-600/20 rounded-lg flex items-center justify-center mb-6">
+                        <i class="fas fa-layer-group text-2xl text-purple-400"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3 text-white">Diseño de Producto</h3>
+                    <p class="text-slate-400 text-sm mb-4">Enfoque centrado en el usuario. Prototipado rápido y diseño de interfaces intuitivas.</p>
+                    <ul class="text-sm text-slate-500 space-y-1">
+                        <li>• Figma</li>
+                        <li>• Prototipado</li>
+                        <li>• Accesibilidad (a11y)</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sección de Contacto Directo -->
+    <section id="contacto" class="py-24 px-6 bg-slate-900 border-t border-slate-800">
+        <div class="max-w-3xl mx-auto text-center fade-up">
+            <h2 class="text-3xl md:text-5xl font-bold mb-6 text-white">¿Listo para comenzar?</h2>
+            <p class="text-lg text-slate-400 mb-10">
+                Actualmente estoy aceptando nuevos proyectos. Si tienes una idea o necesitas fortalecer tu equipo técnico, hablemos.
+            </p>
+            
+            <div class="inline-flex flex-col sm:flex-row gap-4">
+                <button onclick="copyEmailToClipboard('kode.servicios@gmail.com')" class="px-8 py-4 bg-white text-slate-900 rounded-lg font-bold hover:bg-slate-200 transition shadow-lg flex items-center justify-center gap-2">
+                    <i class="far fa-envelope"></i> Copiar Correo
+            </div>
+            
+            <!-- Notificación Toast -->
+            <div id="toast-notification" class="fixed bottom-10 left-1/2 -translate-x-1/2 px-6 py-3 bg-emerald-600 text-white rounded-full shadow-xl opacity-0 transition-opacity duration-300 pointer-events-none text-sm font-medium z-50">
+                <i class="fas fa-check mr-2"></i> Correo copiado al portapapeles
+            </div>
+        </div>
+    </section>
+
+    <!-- WIDGET DE SOPORTE / CHAT -->
+    <div id="support-widget" class="fixed bottom-6 right-6 flex flex-col items-end gap-4">
+        
+        <!-- Ventana del Chat -->
+        <div id="chat-window" class="chat-container w-full max-w-[350px] md:w-[380px] h-[480px] bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+            <!-- Header Chat -->
+            <div class="p-4 bg-slate-900 border-b border-slate-700 flex justify-between items-center">
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 bg-blue-600 rounded-full flex items-center justify-center text-white">
+                        <i class="fas fa-user text-sm"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-sm text-white">Kode (Asistente)</h4>
+                        <p class="text-[11px] text-slate-400 flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span> En línea
+                        </p>
+                    </div>
+                </div>
+                <button onclick="toggleSupportChat()" class="text-slate-400 hover:text-white transition">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <!-- Área de Mensajes -->
+            <div id="messages-area" class="flex-1 p-4 overflow-y-auto custom-scroll flex flex-col gap-3 bg-slate-800/50">
+                <!-- Mensaje Inicial -->
+                <div class="message-bubble self-start max-w-[90%] bg-slate-700 rounded-2xl rounded-tl-none p-3 text-sm text-slate-200 shadow-sm border border-slate-600">
+                    <p>Hola 👋 Bienvenido a Kode.</p>
+                    <p class="mt-2">Soy su asistente digital. Puedo ayudarte a resolver dudas técnicas o recopilar información para una cotización inicial.</p>
+                    <p class="mt-2 font-medium text-blue-300">¿En qué puedo ayudarte hoy?</p>
+                </div>
+            </div>
+
+            <!-- Indicador de "Escribiendo..." -->
+            <div id="typing-status" class="hidden px-4 py-2 bg-slate-800/50">
+                <div class="inline-flex items-center gap-1 px-3 py-2 bg-slate-700 rounded-full border border-slate-600">
+                    <div class="typing-indicator"><span></span><span></span><span></span></div>
+                </div>
+            </div>
+            
+            <!-- Input -->
+            <div class="p-3 bg-slate-900 border-t border-slate-700">
+                <form onsubmit="handleUserMessage(event)" class="relative">
+                    <input type="text" id="message-input" 
+                           class="w-full bg-slate-800 text-white rounded-lg pl-4 pr-12 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 border border-slate-700 placeholder-slate-500"
+                           placeholder="Escribe aquí...">
+                    <button type="submit" class="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center text-blue-500 hover:bg-slate-700 rounded-md transition">
+                        <i class="fas fa-paper-plane text-xs"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Botón Flotante -->
+        <button onclick="toggleSupportChat()" id="chat-trigger" class="w-14 h-14 bg-blue-600 hover:bg-blue-500 rounded-full shadow-lg shadow-blue-900/20 flex items-center justify-center text-white transition-all transform hover:scale-105 active:scale-95">
+            <i class="fas fa-comment-alt text-xl"></i>
+        </button>
+    </div>
+
+    <!-- Footer Simple -->
+    <footer class="py-8 text-center text-slate-500 text-sm border-t border-slate-800/50">
+        <p>&copy; 2026 Amaro Araneda. Todos los derechos reservados.</p>
+    </footer>
+
+    <script>
+        // --- 1. Inicialización y Precarga ---
+        function initApp() {
+            const loader = document.getElementById('loader-overlay');
+            loader.style.opacity = '0';
+            setTimeout(() => {
+                loader.style.visibility = 'hidden';
+            }, 500);
+            
+            initBackgroundAnimation();
+            initScrollEffects();
+        }
+
+        // --- 2. Efectos de Navegación y Scroll ---
+        function initScrollEffects() {
+            const nav = document.getElementById('main-nav');
+            const progressBar = document.getElementById('reading-progress');
+            const sections = document.querySelectorAll('section');
+            const navLinks = document.querySelectorAll('.nav-item');
+            const revealElements = document.querySelectorAll('.fade-up');
+
+            window.addEventListener('scroll', () => {
+                let currentScroll = window.scrollY;
+                
+                // Barra de progreso
+                let docHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+                let scrolled = (currentScroll / docHeight) * 100;
+                progressBar.style.width = scrolled + "%";
+
+                // Estilo Nav Compacto
+                if (currentScroll > 50) nav.classList.add('scrolled');
+                else nav.classList.remove('scrolled');
+
+                // Active Link
+                sections.forEach(sec => {
+                    let top = currentScroll;
+                    let offset = sec.offsetTop - 150;
+                    let height = sec.offsetHeight;
+                    let id = sec.getAttribute('id');
+
+                    if(top >= offset && top < offset + height) {
+                        navLinks.forEach(link => {
+                            link.classList.remove('active');
+                            if(link.getAttribute('href') === '#' + id) {
+                                link.classList.add('active');
+                            }
+                        });
+                    }
+                });
+
+                // Reveal on Scroll
+                revealElements.forEach(el => {
+                    const elementTop = el.getBoundingClientRect().top;
+                    const windowHeight = window.innerHeight;
+                    if(elementTop < windowHeight - 100) {
+                        el.classList.add('visible');
+                    }
+                });
+            });
+        }
+
+        // --- 3. Animación de Fondo (Three.js Sutil) ---
+        function initBackgroundAnimation() {
+            const canvas = document.getElementById('canvas-container');
+            if(!canvas) return;
+            
+            const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 5;
+
+            // Partículas más sutiles y profesionales
+            const geometry = new THREE.BufferGeometry();
+            const count = 400; // Menos partículas para un look más limpio
+            const posArray = new Float32Array(count * 3);
+
+            for(let i = 0; i < count * 3; i++) {
+                posArray[i] = (Math.random() - 0.5) * 15;
+            }
+
+            geometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+            const material = new THREE.PointsMaterial({
+                size: 0.02,
+                color: 0x3b82f6, // Azul profesional
+                transparent: true,
+                opacity: 0.4
+            });
+
+            const mesh = new THREE.Points(geometry, material);
+            scene.add(mesh);
+
+            function animate() {
+                requestAnimationFrame(animate);
+                mesh.rotation.y += 0.0003; // Movimiento muy lento
+                mesh.rotation.x += 0.0001;
+                renderer.render(scene, camera);
+            }
+            animate();
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+
+        // --- 4. Utilidades UI ---
+        function toggleMobileNav() {
+            const menu = document.getElementById('mobile-nav');
+            const icon = document.getElementById('menu-icon');
+            const isOpen = menu.classList.contains('translate-x-full');
+            
+            menu.classList.toggle('translate-x-full');
+            icon.className = isOpen ? 'fas fa-times' : 'fas fa-bars';
+        }
+
+        async function copyEmailToClipboard(email) {
+            try {
+                await navigator.clipboard.writeText(email);
+                const toast = document.getElementById('toast-notification');
+                toast.style.opacity = '1';
+                toast.style.transform = 'translateX(-50%) translateY(-10px)';
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                    toast.style.transform = 'translateX(-50%) translateY(0)';
+                }, 2000);
+            } catch (err) { console.error('Error al copiar', err); }
+        }
+
+        // --- 5. Lógica de Chat / Soporte (Backend Simulado) ---
+        let chatState = {
+            history: [],
+            isOpen: false
+        };
+
+        function toggleSupportChat() {
+            const window = document.getElementById('chat-window');
+            chatState.isOpen = !chatState.isOpen;
+            
+            if (chatState.isOpen) {
+                window.classList.add('active');
+                setTimeout(() => document.getElementById('message-input').focus(), 100);
+            } else {
+                window.classList.remove('active');
+            }
+        }
+
+        function sendEmailRequest() {
+            let body = "Resumen de la solicitud:\n\n";
+            chatState.history.forEach(msg => {
+                const role = msg.role === 'user' ? 'Cliente' : 'Kode (Bot)';
+                // Limpiar etiquetas internas
+                let text = msg.parts[0].text.replace(/\[LEAD_COMPLETED\]/g, ''); 
+                body += `${role}: ${text}\n\n`;
+            });
+            
+            const mailto = `mailto:kode.servicios@gmail.com?subject=Nueva Consulta de Proyecto&body=${encodeURIComponent(body)}`;
+            window.location.href = mailto;
+        }
+
+        async function handleUserMessage(e) {
+            e.preventDefault();
+            const input = document.getElementById('message-input');
+            const container = document.getElementById('messages-area');
+            const loading = document.getElementById('typing-status');
+            const text = input.value.trim();
+
+            if (!text) return;
+
+            // Renderizar Usuario
+            addMessageToUI('user', text);
+            input.value = '';
+            
+            // Mostrar estado "escribiendo"
+            loading.classList.remove('hidden');
+            container.scrollTop = container.scrollHeight;
+
+            // Configuración API (Nota: En producción usar variables de entorno)
+            const API_KEY = ""; // <--- TU API KEY AQUÍ
+            const ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${API_KEY}`;
+
+            if (!API_KEY) {
+                loading.classList.add('hidden');
+                addMessageToUI('bot', "El servicio de chat no está configurado en este entorno local. Por favor contáctame directamente al correo.");
+                return;
+            }
+
+            // Contexto de Negocio (Prompt del Sistema)
+            const businessContext = `
+                Eres el asistente virtual de Kode (Desarrollador Web).
+                Tu objetivo es filtrar y cualificar clientes potenciales de manera amigable y profesional.
+                
+                REGLAS DE INTERACCIÓN:
+                1. Haz solo UNA pregunta a la vez para no abrumar.
+                2. Si preguntan precios, responde que dependen del alcance y sugiere definir los detalles primero.
+                3. FLUJO DE DATOS: 
+                   - Pregunta 1: Idea general del proyecto.
+                   - Pregunta 2: Plazos o funcionalidades clave.
+                   - Pregunta 3: Nombre y Correo.
+                4. Cuando tengas el correo, cierra con la etiqueta [LEAD_COMPLETED].
+                
+                Idioma: Español neutro. Tono: Profesional, conciso, útil.
+            `;
+
+            // Construir payload
+            const payload = {
+                contents: [
+                    { role: "user", parts: [{ text: "System: " + businessContext }] },
+                    ...chatState.history,
+                    { role: "user", parts: [{ text: text }] }
+                ]
+            };
+
+            try {
+                const response = await fetch(ENDPOINT, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                loading.classList.add('hidden');
+
+                if (data.candidates && data.candidates[0].content) {
+                    let aiResponse = data.candidates[0].content.parts[0].text;
+                    let isLeadReady = false;
+
+                    if (aiResponse.includes('[LEAD_COMPLETED]')) {
+                        isLeadReady = true;
+                        aiResponse = aiResponse.replace('[LEAD_COMPLETED]', '');
+                    }
+
+                    addMessageToUI('bot', aiResponse);
+
+                    // Actualizar Historial
+                    chatState.history.push({ role: "user", parts: [{ text: text }] });
+                    chatState.history.push({ role: "model", parts: [{ text: aiResponse }] });
+
+                    // Botón de Acción (Lead Magnet)
+                    if (isLeadReady) {
+                        const btnDiv = document.createElement('div');
+                        btnDiv.className = "self-start mt-2 animate-fade-in";
+                        btnDiv.innerHTML = `
+                            <button onclick="sendEmailRequest()" class="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg shadow-md transition transform hover:scale-105">
+                                <i class="fas fa-paper-plane"></i> Enviar Solicitud Oficial
+                            </button>
+                        `;
+                        container.appendChild(btnDiv);
+                        container.scrollTop = container.scrollHeight;
+                    }
+                }
+
+            } catch (err) {
+                console.error(err);
+                loading.classList.add('hidden');
+                addMessageToUI('bot', "Lo siento, hubo un error de conexión. ¿Podrías intentar de nuevo?");
+            }
+        }
+
+        function addMessageToUI(role, text) {
+            const container = document.getElementById('messages-area');
+            const div = document.createElement('div');
+            
+            let classes = "message-bubble p-3 text-sm max-w-[85%] shadow-sm";
+            
+            if (role === 'user') {
+                classes += " self-end bg-blue-600 text-white rounded-2xl rounded-tr-none";
+                div.textContent = text;
+            } else {
+                classes += " self-start bg-slate-700 text-slate-200 rounded-2xl rounded-tl-none border border-slate-600 chat-content";
+                div.innerHTML = marked.parse(text);
+            }
+            
+            div.className = classes;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        }
+    </script>
+</body>
+</html>
