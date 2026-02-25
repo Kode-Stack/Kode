@@ -455,7 +455,7 @@
             const navLinks = document.querySelectorAll('.nav-item');
             const revealElements = document.querySelectorAll('.fade-up');
 
-            window.addEventListener('scroll', () => {
+            const onScroll = () => {
                 let currentScroll = window.scrollY;
                 
                 // Barra de progreso
@@ -492,7 +492,10 @@
                         el.classList.add('visible');
                     }
                 });
-            });
+            };
+
+            window.addEventListener('scroll', onScroll);
+            onScroll();
         }
 
         // --- 3. Animación de Fondo (Three.js Sutil) ---
